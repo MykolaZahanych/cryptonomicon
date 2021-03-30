@@ -11,22 +11,22 @@ socket.addEventListener("message", e => {
   const { TYPE: type, FROMSYMBOL: currency, PRICE: newPrice } = JSON.parse(
     e.data
   );
-  if (type !== AGGREGATE_INDEX) return;
+  if (type !== AGGREGATE_INDEX || newPrice === undefined) return;
   const handlers = tickersHandlers.get(currency) ?? [];
   handlers.forEach(fn => fn(newPrice));
 });
 
 function sendToWebSocket(message) {
-  const stingifiedMessage = JSON.stringify(message);
+  const stringifiedMessage = JSON.stringify(message);
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(stingifiedMessage);
+    socket.send(stringifiedMessage);
     return;
   }
 
   socket.addEventListener(
     "open",
     () => {
-      socket.send(stingifiedMessage);
+      socket.send(stringifiedMessage);
     },
     { once: true }
   );
@@ -35,11 +35,11 @@ function sendToWebSocket(message) {
 function subscribeToTickerOnWs(ticker) {
   sendToWebSocket({
     action: "SubAdd",
-    subs: [`'5~CCCAGG~${ticker}~USD`]
+    subs: [`5~CCCAGG~${ticker}~USD`]
   });
 }
 
-function unsubscribeToTickerOnWs(ticker) {
+function unsubscribeFromTickerOnWs(ticker) {
   sendToWebSocket({
     action: "SubRemove",
     subs: [`'5~CCCAGG~${ticker}~USD`]
@@ -54,7 +54,5 @@ export const subscribeToTicker = (ticker, cb) => {
 
 export const unsubscribeFromTicker = ticker => {
   tickersHandlers.delete(ticker);
-  unsubscribeToTickerOnWs(ticker);
+  unsubscribeFromTickerOnWs(ticker);
 };
-
-window.tickersHandlers = tickersHandlers;
